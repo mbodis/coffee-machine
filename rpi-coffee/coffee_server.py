@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-from flask import Flask, request
+from flask import Flask, request, abort
 import coffee_machine
 import RPi.GPIO as GPIO
 import threading
 from time import sleep
+import requests
 
 GPIO.setmode(GPIO.BCM)
 
@@ -28,6 +29,15 @@ def ping():
 print("starting server on custom thread")
 threading.Thread(target=lambda: app.run(host='0.0.0.0', port=8090, debug=True, use_reloader=False)).start()
 
+@app.route('/proxy', methods=["GET"])
+def proxy():
+    host = request.args.get('host')
+    bearer = request.args.get('bearer')
+    if host is None or bearer is None:
+        abort(404)
+    headers = {"Content-Type": "application/json; charset=utf-8", "Authorization": 'Bearer ' + bearer}
+    data = requests.get(host, headers=headers).content
+    return data
 
 print("starting btn trigger")
 GPIO.setup(21, GPIO.IN, pull_up_down=GPIO.PUD_UP)
